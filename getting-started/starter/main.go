@@ -27,4 +27,6 @@ func main() {
 	// web server
 	controllers.RegisterControllers()
 	http.ListenAndServe(":3000", nil) // nil uses the default mux
+
+	foundation.ControlFlow()
 }
