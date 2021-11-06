@@ -14,7 +14,12 @@ var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func main() {
 	// fetch1()
-	fetch2()
+	// fetch2()
+	// channels()
+	// bufferedChannels()
+	// directionalChannels()
+	controlFlow()
+	// tryToDoTheSameThingWithoutGoroutines()
 }
 
 func fetch1() {
