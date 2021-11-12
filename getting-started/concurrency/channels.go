@@ -109,3 +109,30 @@ func controlFlow() {
 
 	wg.Wait()
 }
+
+func controlFlow2() {
+	wg := &sync.WaitGroup{}
+	ch := make(chan int)
+
+	wg.Add(2)
+
+	// receive only
+	go func(ch <-chan int, wg *sync.WaitGroup) { // best to pass the vars in instead of using them directly
+		for msg := range ch {
+			fmt.Println(msg)
+		}
+
+		wg.Done()
+	}(ch, wg)
+
+	// send only
+	go func(ch chan<- int, wg *sync.WaitGroup) { // best to pass the vars in instead of using them directly
+		for i := 0; i < 10; i++ {
+			ch <- i
+		}
+		close(ch) // close is required so that the other go routine's range function knows to stop iterating
+		wg.Done()
+	}(ch, wg)
+
+	wg.Wait()
+}

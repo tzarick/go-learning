@@ -16,13 +16,13 @@ func (b Book) String() string {
 var books = []Book{
 	{
 		ID:            1,
-		Title:         "42",
+		Title:         "Book1",
 		Author:        "me",
 		YearPublished: 1990,
 	},
 	{
 		ID:            2,
-		Title:         "41",
+		Title:         "Book2",
 		Author:        "you",
 		YearPublished: 1991,
 	},
