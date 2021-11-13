@@ -16,7 +16,7 @@ func main() {
 	// 	LastName:  "last",
 	// }
 
-	p2 := organization.NewPerson("somebody", "else")
+	p2 := organization.NewPerson("somebody", "else", organization.NewSocialSecurityNumber("123-23-1234"))
 	err := p2.SetTwitterHandle(organization.TwitterHandle("@something"))
 	fmt.Printf("%T\n", organization.TwitterHandle("test"))
 	if err != nil {

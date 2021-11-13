@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// properties that we want to be exported / accessible from other places must start with a capital letter, otherwise they won't be exported
+
 // we could have just included handle as a string in the Person struct and then have a bunch of logic on Person to take care of the handle
 // however, using the new type TwitterHandle allows us to break things into smaller pieces and delegate some responsibility and make things more readable and understandable
 
@@ -31,29 +33,51 @@ type Identifiable interface {
 	ID() string
 }
 
-type Person struct {
-	firstName     string // properties that we want to be exported / accessible from other places must start with a capital letter, otherwise they won't be exported
-	lastName      string
-	twitterHandle TwitterHandle
+type socialSecurityNumber string
+
+func (ssn socialSecurityNumber) ID() string {
+	return string(ssn)
 }
 
-func NewPerson(firstName, lastName string) Person {
-	return Person{
-		firstName: firstName,
-		lastName:  lastName,
-	}
+func NewSocialSecurityNumber(value string) Identifiable {
+	return socialSecurityNumber(value)
+}
+
+type Name struct {
+	first string
+	last  string
 }
 
 // "method receiver function"
-func (p *Person) FullName() string {
-	return fmt.Sprintf("%s %s", p.firstName, p.lastName)
+func (n *Name) FullName() string {
+	return fmt.Sprintf("%s %s", n.first, n.last)
+}
+
+type Employee struct {
+	Name
+}
+
+type Person struct {
+	Name          // embedding this struct by using it directly here
+	twitterHandle TwitterHandle
+	Identifiable
+}
+
+func NewPerson(firstName, lastName string, identifiable Identifiable) Person {
+	return Person{
+		Name: Name{
+			first: firstName,
+			last:  lastName,
+		},
+		Identifiable: identifiable,
+	}
 }
 
 // go implicitly inherits interfaces. we don't have to tell it that Person is of type Identifiable, but go understands it because we've satisfied the interface
 // types can implement interfaces
-func (p *Person) ID() string {
-	return "12345"
-}
+// func (p *Person) ID() string {
+// 	return "12345"
+// }
 
 // in order to *change state* we must use a pointer-based receiver OR we need to return a new version of that type
 // when this is called without a pointer receiver, a copy is used - we wouldn't be changing the state like we are intending
