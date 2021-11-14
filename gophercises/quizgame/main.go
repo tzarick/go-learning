@@ -7,10 +7,12 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/tzarick/go-learning/gophercises/quizgame/quiz"
 )
 
 func main() {
-	problemsCsvFilename := flag.String("problemsCsvFilename", "problems.csv", "The filename of the csv holding the problems for the quiz")
+	problemsCsvFilename := flag.String("csv", "problems.csv", "The filename of the csv holding the problems for the quiz")
 	flag.Parse()
 
 	probs, err := readProblems(problemsCsvFilename)
@@ -18,7 +20,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// fmt.Printf("read %d bytes: %q\n", count, (*probs)[:count])
+	questionAnswerMap := buildQuestionAnswerMap(probs)
+
+	quiz := quiz.NewQuiz(&questionAnswerMap, 0)
+	quiz.Administer()
+	correct, incorrect := quiz.Results()
+
+	fmt.Println(strings.Repeat("-", 30))
+	fmt.Printf(`
+		Results:
+
+		Total Qs: %v
+		Correct: %v
+		Incorrect: %v	
+	`, correct+incorrect, correct, incorrect)
+}
+
+func buildQuestionAnswerMap(probs []string) map[string]string {
 	questionAnswer := map[string]string{}
 	for _, v := range probs {
 		if len(v) > 0 {
@@ -30,11 +48,7 @@ func main() {
 		}
 	}
 
-	fmt.Println(questionAnswer)
-
-	// for i := 0; i < count; i++ {
-	// 	fmt.Printf("%q", (*probs)[i])
-	// }
+	return questionAnswer
 }
 
 func readProblems(filename *string) ([]string, error) {
@@ -45,13 +59,14 @@ func readProblems(filename *string) ([]string, error) {
 
 	defer file.Close()
 
-	data := make([]byte, 100)
+	data := make([]byte, 200)
 	count, err := file.Read(data)
 	if err != nil {
 		return []string{}, errors.New(err.Error())
 	}
 
 	probsString := string(data[:count])
+	// println("p string:", probsString)
 	problemElements := strings.Split(probsString, "\n")
 
 	return problemElements, nil
