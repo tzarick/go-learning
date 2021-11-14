@@ -3,6 +3,7 @@ package organization
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -33,14 +34,64 @@ type Identifiable interface {
 	ID() string
 }
 
+type Citizen interface {
+	Identifiable
+	Country() string
+}
+
+type Conflict interface {
+	ID() string
+}
+
 type socialSecurityNumber string
 
 func (ssn socialSecurityNumber) ID() string {
 	return string(ssn)
 }
 
-func NewSocialSecurityNumber(value string) Identifiable {
+func NewSocialSecurityNumber(value string) Citizen {
 	return socialSecurityNumber(value)
+}
+
+func (ssn socialSecurityNumber) Country() string {
+	return "United States"
+}
+
+type euId struct {
+	id      string
+	country string
+}
+
+func (eui euId) ID() string {
+	return eui.id
+}
+
+// using interface{} isn't the best. Doesn't give us any indication into what type it really is. (kind of like `any` in typescript)
+func NewEuId(id interface{}, country string) Citizen {
+	switch v := id.(type) { // go takes care of casting v for us
+	case string:
+		return euId{
+			id:      v, // can also do this -> id: id.(string),
+			country: country,
+		}
+	case int:
+		return euId{
+			id:      strconv.Itoa(v),
+			country: country,
+		}
+	case euId: // can also switch on structs!
+		return v
+	case Person:
+		euId, _ := v.Citizen.(euId)
+		return euId
+	default:
+		panic("using invalid to for EU identifier")
+	}
+
+}
+
+func (eui euId) Country() string {
+	return eui.country
 }
 
 type Name struct {
@@ -60,16 +111,16 @@ type Employee struct {
 type Person struct {
 	Name          // embedding this struct by using it directly here
 	twitterHandle TwitterHandle
-	Identifiable
+	Citizen
 }
 
-func NewPerson(firstName, lastName string, identifiable Identifiable) Person {
+func NewPerson(firstName, lastName string, citizen Citizen) Person {
 	return Person{
 		Name: Name{
 			first: firstName,
 			last:  lastName,
 		},
-		Identifiable: identifiable,
+		Citizen: citizen,
 	}
 }
 
