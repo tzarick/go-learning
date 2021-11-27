@@ -47,6 +47,6 @@ func (quiz *Quiz) askQuestion(q, a string) {
 }
 
 // return total Qs and also amount of correct and incorrect answers
-func (sk scoreKeeper) Results() (int, int) {
+func (sk scoreKeeper) Results() (correct int, incorrect int) {
 	return sk.correct, sk.incorrect
 }
