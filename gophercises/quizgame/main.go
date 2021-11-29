@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/tzarick/go-learning/gophercises/quizgame/quiz"
@@ -14,7 +15,10 @@ import (
 
 func main() {
 	problemsCsvFilename := flag.String("csv", "problems.csv", "The filename of the csv holding the problems for the quiz")
+	userTimeout := flag.String("timeout", "30", "Time limit for the quiz")
 	flag.Parse()
+
+	timeout, _ := strconv.Atoi(*userTimeout)
 
 	probs, err := readProblems(problemsCsvFilename)
 	if err != nil {
@@ -23,7 +27,7 @@ func main() {
 
 	questionAnswerMap := buildQuestionAnswerMap(probs)
 
-	quiz := quiz.NewQuiz(&questionAnswerMap, 0)
+	quiz := quiz.NewQuiz(&questionAnswerMap, timeout)
 
 	quiz.Administer()
 	correct, incorrect := quiz.Results()

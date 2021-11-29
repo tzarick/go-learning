@@ -2,12 +2,16 @@ package quiz
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Quiz struct {
 	questionsAndAnswers map[string]string
 	timeout             int
+	startTime           time.Time
 	scoreKeeper
 }
 
@@ -24,10 +28,44 @@ func NewQuiz(questionMap *map[string]string, timeout int) *Quiz {
 }
 
 func (quiz *Quiz) Administer() {
-	fmt.Printf("Starting quiz! There will be %d questions...\n", len(quiz.questionsAndAnswers))
-	for q, a := range quiz.questionsAndAnswers {
-		quiz.askQuestion(q, a)
-	}
+	fmt.Scanf("Press enter to start quiz...") // waits until enter is pressed
+
+	wg := &sync.WaitGroup{}
+
+	quiz.startTime = time.Now()
+
+	wg.Add(2)
+	go func(startTime time.Time, timeout int, wg *sync.WaitGroup) {
+		for {
+			if int(time.Since(startTime).Seconds()) >= timeout {
+				// terminate quiz somehow
+				correct, incorrect := quiz.Results()
+
+				fmt.Println(strings.Repeat("-", 30))
+				fmt.Printf(`
+					Results:
+			
+					Total Qs: %v
+					Correct: %v
+					Incorrect: %v
+				`, correct+incorrect, correct, incorrect)
+
+				os.Exit(0)
+				wg.Done()
+			}
+		}
+	}(quiz.startTime, quiz.timeout, wg)
+
+	go func(wg *sync.WaitGroup) {
+		fmt.Printf("Starting quiz! There will be %d questions...\n", len(quiz.questionsAndAnswers))
+		for q, a := range quiz.questionsAndAnswers {
+			quiz.askQuestion(q, a)
+		}
+
+		wg.Done()
+	}(wg)
+
+	wg.Wait()
 }
 
 func (quiz *Quiz) askQuestion(q, a string) {
