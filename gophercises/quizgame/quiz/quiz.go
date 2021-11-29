@@ -2,16 +2,13 @@ package quiz
 
 import (
 	"fmt"
-	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
 type Quiz struct {
 	questionsAndAnswers map[string]string
 	timeout             int
-	startTime           time.Time
 	scoreKeeper
 }
 
@@ -28,60 +25,43 @@ func NewQuiz(questionMap *map[string]string, timeout int) *Quiz {
 }
 
 func (quiz *Quiz) Administer() {
-	fmt.Scanf("Press enter to start quiz...") // waits until enter is pressed
+	fmt.Println("Press enter to start quiz...")
+	fmt.Scanf("%v") // waits until enter is pressed
 
-	wg := &sync.WaitGroup{}
+	timer := *time.NewTimer(time.Duration(quiz.timeout) * time.Second)
+	// <-timer.C // block until we receive a message
 
-	quiz.startTime = time.Now()
+	fmt.Printf("Starting quiz! There will be %d questions...\n", len(quiz.questionsAndAnswers))
 
-	wg.Add(2)
-	go func(startTime time.Time, timeout int, wg *sync.WaitGroup) {
-		for {
-			if int(time.Since(startTime).Seconds()) >= timeout {
-				// terminate quiz somehow
-				correct, incorrect := quiz.Results()
+questionLoop:
+	for q, a := range quiz.questionsAndAnswers {
+		fmt.Printf("What is %s?\n", q)
 
-				fmt.Println(strings.Repeat("-", 30))
-				fmt.Printf(`
-					Results:
-			
-					Total Qs: %v
-					Correct: %v
-					Incorrect: %v
-				`, correct+incorrect, correct, incorrect)
+		answerCh := make(chan string)
+		go func(answerCh chan string) {
+			var answer string
+			fmt.Scan(&answer)
 
-				os.Exit(0)
-				wg.Done()
+			answerCh <- answer
+		}(answerCh)
+
+		// wait either for a message from the timer telling us time has expired OR a message from the answer channel with the user input
+		select {
+		case <-timer.C:
+			// fmt.Printf("\nTime limit reached. Results -> Correct: %d, Total: %d\n", quiz.correct, len(quiz.questionsAndAnswers))
+			// os.Exit(0)
+			fmt.Println("\nTimeout reached!!")
+			break questionLoop // break out of the question loop and continue to the end of the program
+		case answer := <-answerCh:
+			if cleanAnswer := strings.ToLower(strings.TrimSpace(answer)); cleanAnswer == a {
+				quiz.correct++
+			} else {
+				quiz.incorrect++
 			}
-		}
-	}(quiz.startTime, quiz.timeout, wg)
-
-	go func(wg *sync.WaitGroup) {
-		fmt.Printf("Starting quiz! There will be %d questions...\n", len(quiz.questionsAndAnswers))
-		for q, a := range quiz.questionsAndAnswers {
-			quiz.askQuestion(q, a)
-		}
-
-		wg.Done()
-	}(wg)
-
-	wg.Wait()
-}
-
-func (quiz *Quiz) askQuestion(q, a string) {
-	fmt.Printf("What is %s?\n", q)
-	var answer string
-	_, err := fmt.Scan(&answer)
-
-	if err != nil {
-		quiz.incorrect++
-	} else {
-		if cleanAnswer := strings.ToLower(strings.TrimSpace(answer)); cleanAnswer == a {
-			quiz.correct++
-		} else {
-			quiz.incorrect++
+			// no default case exists, so it blocks until we get a message from one of the channels
 		}
 	}
+
 }
 
 // return total Qs and also amount of correct and incorrect answers
