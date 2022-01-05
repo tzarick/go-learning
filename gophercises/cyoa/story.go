@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var tpl *template.Template
@@ -38,19 +39,63 @@ var defaultHandlerTemplate = `
 </html>
 `
 
-func NewHandler(s Story) http.Handler {
-	return handler{s}
+type HandlerOption func(h *handler)
+
+// functional options - normally meant for optional things
+func WithTempate(t *template.Template) HandlerOption {
+	return func(h *handler) {
+		h.t = t
+	}
+}
+
+func WithPathFunc(fn func(r *http.Request) string) HandlerOption {
+	return func(h *handler) {
+		h.pathFn = fn
+	}
+}
+
+// makes it clear that we need certain options together, like username and pword
+// func WithDatabase(username, pword string) HandlerOption {
+
+// }
+
+func NewHandler(s Story, opts ...HandlerOption) http.Handler {
+	h := handler{s, tpl, defaultPathFn} // default
+
+	for _, opt := range opts {
+		opt(&h) // each option sets itself on the instance we hand it
+	}
+
+	return h
 }
 
 type handler struct {
-	s Story
+	s      Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
+}
+
+func defaultPathFn(r *http.Request) string {
+	path := strings.TrimSpace(r.URL.Path)
+	if path == "" || path == "/" {
+		path = "/intro" // assume intro if no path
+	}
+	path = path[1:] // get rid of slash
+
+	return path
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := tpl.Execute(w, h.s["intro"])
-	if err != nil {
-		log.Fatal(err)
+	path := h.pathFn(r)
+	if chapter, ok := h.s[path]; ok {
+		err := h.t.Execute(w, chapter)
+		if err != nil {
+			log.Printf("%v", err)                                                    // log error to our own logs
+			http.Error(w, "Something went wrong...", http.StatusInternalServerError) // only expose some info to user
+		}
+		return
 	}
+	http.Error(w, "Chapter not found", http.StatusNotFound)
 }
 
 func JsonStory(r io.Reader) (Story, error) {
